@@ -10,6 +10,7 @@ Para levar os dados a outro aparelho, use **Personalizar → Exportar backup** e
 
 ## Arquivos
 
+
 | Arquivo | Para que serve |
 |---|---|
 | `index.html` | O app inteiro |
