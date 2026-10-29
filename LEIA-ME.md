@@ -4,18 +4,21 @@ O app é um site que pode ser instalado (PWA). Qualquer pessoa abre o link, toca
 **Menu → Instalar app**, e ele ganha um ícone na tela inicial do celular ou no menu
 Iniciar do Windows. Ele funciona sem internet depois de aberto uma vez.
 
-Os dados de cada pessoa ficam só no aparelho dela. Não há servidor, login nem custo.
+Sem login, os dados de cada pessoa ficam só no aparelho dela. Com o login Google ligado
+(veja `SINCRONIZAR.md`), quem entrar tem os dados sincronizados entre aparelhos.
 Para levar os dados a outro aparelho, use **Personalizar → Exportar backup** e depois
 **Importar backup** no outro aparelho.
 
 ## Arquivos
-
 
 | Arquivo | Para que serve |
 |---|---|
 | `index.html` | O app inteiro |
 | `manifest.webmanifest` | Nome, ícone e cores do app instalado |
 | `sw.js` | Faz o app abrir sem internet |
+| `config.js` | Endereço e chave do Supabase (sincronização) |
+| `supabase-setup.sql` | Cria a tabela e as regras de segurança no Supabase |
+| `SINCRONIZAR.md` | Passo a passo do login com Google |
 | `icons/` | Ícones do app |
 
 ## Opção A: GitHub Pages (recomendado)
@@ -51,7 +54,7 @@ Para levar os dados a outro aparelho, use **Personalizar → Exportar backup** e
 
 Os dados das pessoas não são apagados ao atualizar.
 
-## Próximo passo (quando quiser)
+## Sincronização com login Google
 
-Para sincronizar entre aparelhos e ter login, dá para ligar o app a um serviço como
-Supabase ou Firebase, que têm plano gratuito.
+Siga o arquivo `SINCRONIZAR.md`. Enquanto o `config.js` estiver vazio, o app funciona
+só no aparelho, sem login.

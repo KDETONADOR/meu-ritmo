@@ -14,6 +14,8 @@
 <meta name="apple-mobile-web-app-title" content="Meu Ritmo">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400..600&family=Nunito:wght@400..800&display=swap">
 <style>
 /* Layout: painel de controle de uma coluna larga — resumo do dia no topo, linha do tempo, semana, registros; ajustes numa gaveta lateral */
@@ -75,6 +77,13 @@ header.top>div:first-child{min-width:0}
 .menu-item{border:0;background:transparent;text-align:left;padding:10px 10px;border-radius:calc(var(--radius) * .5);display:flex;justify-content:space-between;align-items:center;gap:8px}
 .menu-item:hover{background:var(--surface-2)}
 .menu-item small{color:var(--muted);font-size:.78rem}
+.acc{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center}
+.acc img{width:34px;height:34px;border-radius:50%;object-fit:cover;background:var(--surface-2)}
+.acc b{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acc small{display:block;color:var(--muted);font-size:.78rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btn-google{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;background:#fff;color:#1f1f1f;border:1px solid #c7c9cf;font-weight:600}
+.btn-google svg{width:18px;height:18px}
+.acc-hint{font-size:.78rem;color:var(--muted)}
 .menu-foot{padding:8px 10px 4px;border-top:1px solid var(--line);margin-top:4px}
 .seg.full{display:flex}.seg.full button{flex:1}
 .daynav{display:flex;align-items:center;gap:2px;margin-left:-8px}
@@ -198,6 +207,17 @@ textarea{width:100%;min-height:90px;font-family:var(--font-num);font-size:.75rem
       <button id="menuBtn" class="btn-primary menu-btn" aria-haspopup="true" aria-expanded="false" aria-controls="menu">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12"/></svg>Menu</button>
       <div class="menu" id="menu" hidden>
+        <div class="menu-sec" id="mAccount" hidden>
+          <div id="accOut" style="display:flex;flex-direction:column;gap:6px">
+            <button type="button" class="btn-google" id="loginBtn"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>Entrar com Google</button>
+            <span class="acc-hint">Entre para salvar na nuvem e usar em qualquer aparelho.</span>
+          </div>
+          <div class="acc" id="accIn" hidden>
+            <img id="accPic" alt="" referrerpolicy="no-referrer">
+            <div style="min-width:0"><b id="accName"></b><small id="accEmail"></small></div>
+            <button type="button" class="btn-ghost" id="logoutBtn">Sair</button>
+          </div>
+        </div>
         <div class="menu-sec"><span class="label">Visualização</span>
           <div class="seg full" id="mMode"><button type="button" data-v="detailed">Detalhada</button><button type="button" data-v="simple">Simplificada</button></div></div>
         <div class="menu-sec"><label class="label" for="datePick">Ir para o dia</label>
@@ -395,7 +415,12 @@ function demoDays(){
 let S=defaultSettings(), D={};
 let selDay=keyOf(new Date());
 let editing=null;
-let dbCol=null, dirty=new Set(), knownDocs=new Set(), flushTimer=null, flushing=false;
+let sb=null, user=null, dirty=new Set(), flushTimer=null, flushing=false, pulling=false;
+const LS_DIRTY='meu-ritmo-pending', LS_OWNER='meu-ritmo-owner';
+const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+const lsSet=(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}};
+try{JSON.parse(lsGet(LS_DIRTY)||'[]').forEach(x=>dirty.add(x))}catch(e){}
+function saveDirty(){lsSet(LS_DIRTY,JSON.stringify([...dirty]))}
 
 function loadLocal(){try{const raw=localStorage.getItem(LS);if(!raw)return null;return JSON.parse(raw)}catch(e){return null}}
 function saveLocal(){try{localStorage.setItem(LS,JSON.stringify({settings:S,days:D}))}catch(e){}}
@@ -411,33 +436,117 @@ else{D=demoDays()}
 
 function markSettings(){dirty.add('settings');schedule()}
 function markDay(k){dirty.add('d-'+k);schedule()}
-function schedule(){saveLocal();clearTimeout(flushTimer);flushTimer=setTimeout(flush,700)}
+function schedule(){saveLocal();saveDirty();clearTimeout(flushTimer);flushTimer=setTimeout(flush,700)}
+const okMsg=()=>'Sincronizado com '+(user&&user.email?user.email:'sua conta');
+function docBody(id){
+  if(id==='settings')return JSON.parse(JSON.stringify(S));
+  const k=id.slice(2);const es=(D[k]&&D[k].entries)||[];
+  return es.length?{date:k,entries:JSON.parse(JSON.stringify(es))}:null;
+}
+/* envia para a nuvem o que mudou neste aparelho */
 async function flush(){
-  if(!dbCol){dirty.clear();return}
-  if(flushing)return;
-  flushing=true;setSync('busy','Salvando…');
+  if(!sb||!user||flushing||!dirty.size)return;
+  if(!navigator.onLine){setSync('local','Sem internet. Sincroniza quando a conexão voltar.');return}
+  flushing=true;setSync('busy','Sincronizando…');
+  const ids=[...dirty],snap={},ups=[],dels=[];
+  ids.forEach(id=>{const b=docBody(id);snap[id]=JSON.stringify(b);
+    if(b)ups.push({user_id:user.id,doc_id:id,data:b,updated_at:new Date().toISOString()});else dels.push(id)});
   try{
-    while(dirty.size){
-      const id=dirty.values().next().value;dirty.delete(id);
-      const ref=dbCol.doc(id);
-      if(id==='settings'){await ref.set(JSON.parse(JSON.stringify(S)));knownDocs.add(id)}
-      else{const k=id.slice(2);const es=(D[k]&&D[k].entries)||[];
-        if(es.length){await ref.set({date:k,entries:JSON.parse(JSON.stringify(es))});knownDocs.add(id)}
-        else if(knownDocs.has(id)){await ref.delete();knownDocs.delete(id)}}
-    }
-    setSync('ok','Salvo na sua conta — disponível em qualquer dispositivo');
+    if(ups.length){const {error}=await sb.from('user_data').upsert(ups);if(error)throw error}
+    if(dels.length){const {error}=await sb.from('user_data').delete().eq('user_id',user.id).in('doc_id',dels);if(error)throw error}
+    ids.forEach(id=>{if(JSON.stringify(docBody(id))===snap[id])dirty.delete(id)});
+    saveDirty();setSync('ok',okMsg());
   }catch(e){
-    if(e&&e.code==='quota_exceeded'){setSync('err','Espaço cheio — exporte um backup e apague dias antigos')}
-    else{setSync('err','Não consegui salvar agora. Vou tentar de novo.');setTimeout(()=>{flushing=false;flush()},4000+Math.random()*2000);return}
-  }finally{flushing=false}
-  if(dirty.size)flush();
+    flushing=false;setSync('err','Não consegui sincronizar agora. Tentando de novo…');
+    clearTimeout(flushTimer);flushTimer=setTimeout(flush,6000+Math.random()*4000);return;
+  }
+  flushing=false;
+  if(dirty.size){clearTimeout(flushTimer);flushTimer=setTimeout(flush,300)}
+}
+/* baixa da nuvem o que mudou em outros aparelhos */
+async function pull(first){
+  if(!sb||!user||pulling)return;pulling=true;
+  try{
+    const {data,error}=await sb.from('user_data').select('doc_id,data');if(error)throw error;
+    const remote={};(data||[]).forEach(r=>{remote[r.doc_id]=r.data});
+    const owner=lsGet(LS_OWNER);
+    if(first&&owner!==user.id){
+      if(!owner){
+        /* primeiro login neste aparelho: junta o que já estava aqui com a conta */
+        Object.keys(D).forEach(k=>{D[k].entries=(D[k].entries||[]).filter(e=>!e.demo);if(!D[k].entries.length)delete D[k]});
+        if(remote.settings){const run=S.running;S=normSettings(remote.settings);dirty.delete('settings');if(!S.running&&run){S.running=run;dirty.add('settings')}}
+        else dirty.add('settings');
+        const keys=new Set([...Object.keys(D),...Object.keys(remote).filter(id=>id.startsWith('d-')).map(id=>id.slice(2))]);
+        keys.forEach(k=>{const loc=(D[k]&&D[k].entries)||[];const rem=(remote['d-'+k]&&remote['d-'+k].entries)||[];
+          const map=new Map();rem.forEach(e=>map.set(e.id,e));let changed=false;
+          loc.forEach(e=>{if(!map.has(e.id)){map.set(e.id,e);changed=true}});
+          const all=[...map.values()];if(all.length)D[k]={entries:all};else delete D[k];if(changed)dirty.add('d-'+k)});
+      }else{
+        /* outra conta usava este aparelho: mostra só os dados desta conta */
+        dirty.clear();S=normSettings(remote.settings||null);D={};
+        Object.keys(remote).forEach(id=>{if(id.startsWith('d-'))D[id.slice(2)]={entries:remote[id].entries||[]}});
+      }
+      lsSet(LS_OWNER,user.id);
+    }else{
+      if(remote.settings&&!dirty.has('settings'))S=normSettings(remote.settings);
+      Object.keys(D).forEach(k=>{if(!remote['d-'+k]&&!dirty.has('d-'+k))delete D[k]});
+      Object.keys(remote).forEach(id=>{if(id.startsWith('d-')&&!dirty.has(id))D[id.slice(2)]={entries:remote[id].entries||[]}});
+    }
+    saveLocal();saveDirty();applyAppearance();renderAll();
+    if(dirty.size)flush();else setSync('ok',okMsg());
+  }catch(e){
+    setSync(navigator.onLine?'err':'local',navigator.onLine?'Não consegui baixar seus dados agora.':'Sem internet. Sincroniza quando a conexão voltar.');
+  }finally{pulling=false}
 }
 function setSync(s,t){['sync','syncMenu'].forEach(id=>{const el=$(id);el.dataset.s=s;el.querySelector('span').textContent=t})}
 
+/* ---------- conta Google ---------- */
+let lastUid;
 async function connect(){
-  setSync('local','Salvo neste aparelho');
-  try{if(navigator.storage&&navigator.storage.persist){await navigator.storage.persist()}}catch(e){}
+  try{if(navigator.storage&&navigator.storage.persist){navigator.storage.persist()}}catch(e){}
+  const cfg=window.MEU_RITMO_CONFIG||{};
+  if(!cfg.supabaseUrl||!cfg.supabaseKey||!window.supabase){setSync('local','Salvo neste aparelho');return}
+  $('mAccount').hidden=false;
+  try{
+    sb=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseKey,{auth:{flowType:'pkce',persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+    sb.auth.onAuthStateChange((ev,session)=>{setTimeout(()=>onSession(session),0)});
+    const {data}=await sb.auth.getSession();onSession(data.session);
+  }catch(e){sb=null;$('mAccount').hidden=true;setSync('local','Salvo neste aparelho')}
 }
+function onSession(session){
+  const u=session?session.user:null;const id=u?u.id:null;
+  if(id===lastUid){user=u||user;return}
+  lastUid=id;user=u;renderAccount();
+  if(u){
+    if(/[?&]code=|access_token=/.test(location.search+location.hash))history.replaceState(null,'',location.pathname);
+    setSync('busy','Sincronizando…');pull(true);
+  }else setSync('local','Salvo neste aparelho. Entre com Google para sincronizar.');
+}
+const avatarSvg=l=>'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 34 34"><rect width="34" height="34" rx="17" fill="'+(S.accent||'#2f7f73')+'"/><text x="17" y="22.5" text-anchor="middle" font-family="sans-serif" font-size="15" font-weight="700" fill="#fff">'+l+'</text></svg>');
+function renderAccount(){
+  const on=!!user;$('accOut').hidden=on;$('accIn').hidden=!on;
+  if(on){const m=user.user_metadata||{};$('accName').textContent=m.full_name||m.name||'Sua conta';$('accEmail').textContent=user.email||'';
+    const pic=m.avatar_url||m.picture;const ini=esc(((m.full_name||user.email||'?').trim()[0]||'?').toUpperCase());
+    $('accPic').onerror=()=>{$('accPic').onerror=null;$('accPic').src=avatarSvg(ini)};$('accPic').src=pic||avatarSvg(ini)}
+  const lb=$('logoutBtn');delete lb.dataset.armed;lb.textContent='Sair';
+}
+$('loginBtn').onclick=async()=>{
+  if(!sb)return;if(!navigator.onLine){toast('Conecte-se à internet para entrar.');return}
+  const {error}=await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname}});
+  if(error)toast('Não consegui abrir o login do Google. Tente de novo.');
+};
+$('logoutBtn').onclick=async e=>{
+  const b=e.currentTarget;
+  await flush();
+  if(dirty.size&&!b.dataset.armed){b.dataset.armed='1';b.textContent='Sair mesmo assim?';toast('Há mudanças que ainda não foram para a nuvem. Elas serão perdidas se você sair agora.');return}
+  closeMenu();
+  try{await sb.auth.signOut()}catch(err){}
+  lsSet(LS_OWNER,null);dirty.clear();saveDirty();S=defaultSettings();D={};saveLocal();
+  applyAppearance();resetForm();renderAll();toast('Você saiu. Seus dados continuam guardados na sua conta.');
+};
+window.addEventListener('online',()=>{if(user){flush();pull(false)}});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&user){flush();pull(false)}});
+setInterval(()=>{if(user&&document.visibilityState==='visible'&&!dirty.size)pull(false)},60000);
 
 /* ---------- helpers ---------- */
 const catById=id=>S.cats.find(c=>c.id===id)||{id,name:'Removida',color:'#8a8f9c',goal:0};
@@ -739,7 +848,7 @@ function fillSettings(){
   seg('sChart',S.dayChart);seg('sTheme',S.theme);$('sAccent').value=S.accent;$('sFont').value=S.font;$('sRadius').value=S.radius;
   $('accentSw').innerHTML=ACCENTS.map(c=>`<button type="button" style="background:${c}" data-c="${c}" aria-label="Cor ${c}" aria-pressed="${c===S.accent}"></button>`).join('');
   renderLayoutEdit();
-  $('dataNote').textContent='Seus dados ficam só neste aparelho, ninguém mais tem acesso. Para passar para outro aparelho, exporte o backup aqui e importe lá. Exporte de vez em quando por segurança.';
+  $('dataNote').textContent=user?'Seus dados estão salvos na sua conta ('+(user.email||'Google')+') e aparecem em todo aparelho onde você entrar. Só você tem acesso a eles.':'Seus dados ficam só neste aparelho. Para usar em vários aparelhos, entre com Google pelo Menu. Também dá para exportar um backup e importar em outro aparelho.';
   renderCatEdit();
 }
 function renderCatEdit(){

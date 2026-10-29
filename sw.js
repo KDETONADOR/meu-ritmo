@@ -1,7 +1,7 @@
 // Meu Ritmo — service worker: faz o app abrir sem internet.
 // Ao publicar uma nova versão do app, aumente o número abaixo.
-const VERSION = 'meu-ritmo-v1';
-const SHELL = ['./', './index.html', './manifest.webmanifest',
+const VERSION = 'meu-ritmo-v2';
+const SHELL = ['./', './index.html', './config.js', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
@@ -19,13 +19,21 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   const isFont = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
-  if (url.origin !== location.origin && !isFont) return;
+  const isLib = url.hostname === 'cdn.jsdelivr.net';
+  // Login e dados da nuvem (Supabase, Google) nunca passam pelo cache.
+  if (url.origin !== location.origin && !isFont && !isLib) return;
 
   // Página: tenta a internet primeiro (para pegar atualizações), senão usa a cópia salva.
   if (req.mode === 'navigate') {
     e.respondWith(fetch(req).then(res => {
       const copy = res.clone(); caches.open(VERSION).then(c => c.put('./index.html', copy)); return res;
     }).catch(() => caches.match('./index.html')));
+    return;
+  }
+  // config.js: sempre tenta a versão mais nova.
+  if (url.origin === location.origin && url.pathname.endsWith('/config.js')) {
+    e.respondWith(fetch(req).then(res => { const copy = res.clone(); caches.open(VERSION).then(c => c.put(req, copy)); return res; })
+      .catch(() => caches.match(req)));
     return;
   }
   // Demais arquivos e fontes: usa a cópia salva e atualiza em segundo plano.
