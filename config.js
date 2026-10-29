@@ -6,6 +6,6 @@
 // regras de segurança criadas pelo arquivo supabase-setup.sql.
 // Se ficarem vazias, o app funciona só no aparelho, sem login.
 window.MEU_RITMO_CONFIG = {
-  supabaseUrl: "",
-  supabaseKey: ""
+  supabaseUrl: "https://hgtoovqucgaqahwtghdr.supabase.co",
+  supabaseKey: "sb_publishable_tqrdvgF2eJUSIdUec5V5UA_2SiS8W8J"
 };
