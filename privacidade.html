@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Privacidade · Meu Ritmo</title>
+<link rel="icon" href="icons/icon-192.png" type="image/png">
+<style>
+:root{--bg:#f2f4f7;--surface:#fff;--fg:#151923;--muted:#596173;--line:#d8dce5;--accent:#2f7f73;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1117;--surface:#161a23;--fg:#e7e9ef;--muted:#959cad;--line:#2a303e;--accent:#4fb3a4;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 "Segoe UI",system-ui,sans-serif}
+main{max-width:720px;margin:0 auto;padding:32px max(16px,env(safe-area-inset-left,0px)) 60px}
+h1{font-size:1.9rem;margin:0 0 4px;letter-spacing:-.01em}
+h2{font-size:1.1rem;margin:28px 0 6px}
+p,li{color:var(--fg)}
+.muted{color:var(--muted);font-size:.9rem}
+a{color:var(--accent)}
+ul{padding-left:20px}
+</style>
+</head>
+<body>
+<main>
+  <p><a href="./">← Voltar para o Meu Ritmo</a></p>
+  <h1>Política de privacidade</h1>
+  <p class="muted">Meu Ritmo · atualizada em outubro de 2026</p>
+
+  <p>O Meu Ritmo é um app gratuito para organizar horários de estudo e trabalho. Esta página explica quais dados ele usa e o que acontece com eles.</p>
+
+  <h2>Sem login</h2>
+  <p>Se você usar o app sem entrar com uma conta, todos os seus registros e configurações ficam apenas no seu aparelho, guardados pelo navegador. Nada é enviado para nenhum servidor.</p>
+
+  <h2>Com login Google</h2>
+  <p>Ao tocar em <b>Entrar com Google</b>, o app recebe do Google apenas:</p>
+  <ul>
+    <li>seu nome,</li>
+    <li>seu endereço de e-mail,</li>
+    <li>sua foto de perfil.</li>
+  </ul>
+  <p>Esses dados servem só para identificar sua conta e mostrar quem está conectado. O app não tem acesso à sua senha, aos seus e-mails, contatos, arquivos ou a qualquer outro dado da sua conta Google.</p>
+
+  <h2>O que fica salvo na nuvem</h2>
+  <p>Quando você entra, seus registros de horário, categorias, metas e preferências de tela são guardados no Supabase, o serviço de banco de dados usado pelo app. Regras de segurança garantem que cada pessoa só consegue ler e alterar os próprios dados.</p>
+
+  <h2>O que não fazemos</h2>
+  <ul>
+    <li>Não vendemos nem compartilhamos seus dados com ninguém.</li>
+    <li>Não mostramos anúncios.</li>
+    <li>Não usamos ferramentas de rastreamento ou análise de comportamento.</li>
+  </ul>
+
+  <h2>Como apagar seus dados</h2>
+  <p>No app, abra <b>Menu → Personalizar → Apagar todos os dados</b>. Isso apaga seus registros do aparelho e da nuvem. Para remover também o cadastro da sua conta, abra um pedido em <a href="https://github.com/KDETONADOR/meu-ritmo/issues">github.com/KDETONADOR/meu-ritmo/issues</a>.</p>
+
+  <h2>Contato</h2>
+  <p>Dúvidas sobre privacidade podem ser enviadas pelo mesmo endereço: <a href="https://github.com/KDETONADOR/meu-ritmo/issues">github.com/KDETONADOR/meu-ritmo/issues</a>.</p>
+</main>
+</body>
+</html>
